@@ -1,0 +1,11 @@
+name = "ttft-proxy-us"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# 限制部署区域（付费功能）
+# regions = ["us-east", "us-west", "us-central"]
+# 注意：免费套餐不支持区域限制，会自动路由到最近的节点
+
+# 部署到 Cloudflare
+# 使用免费套餐即可
+# Worker URL: https://ttft-proxy-us.huyue199312.workers.dev

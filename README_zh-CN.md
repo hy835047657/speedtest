@@ -204,6 +204,26 @@ npm run build
 npm run preview
 ```
 
+### Vercel Serverless 部署（固定美国区域示例）
+
+在项目根目录添加或修改 vercel.json：
+
+```json
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nuxtjs",
+  "regions": ["iad1"]
+}
+```
+
+部署后在页面里填写 Function URL，例如：
+
+```
+https://your-app.vercel.app/api/ttft-vercel-proxy
+```
+
 ## 🛠️ 技术栈
 
 - **框架**：[Nuxt.js 4.1.3](https://nuxt.com/)

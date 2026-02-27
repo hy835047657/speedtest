@@ -1,0 +1,37 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Testing
+coverage
+.nyc_output
+
+# Next.js
+.next/
+out/
+build
+dist
+
+# Production
+.output
+
+# Misc
+.DS_Store
+*.pem
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Cloudflare
+.wrangler
+wrangler.jsonc.bak
+
+# Zip files
+*.zip
+
+# Demo files
+nuxt-mix-template111-demo.zip

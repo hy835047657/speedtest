@@ -33,34 +33,32 @@
                 <select v-model="proxyRegion">
                   <option value="direct">直连（浏览器）</option>
                   <option value="shanghai">上海（CloudBase）</option>
-                  <option value="us-cloudflare">美国（Cloudflare）</option>
-                  <option value="us-vercel">美国（Vercel Edge - 强制）⭐</option>
+                  <option value="us-vercel">美国（Vercel Serverless）</option>
                 </select>
               </div>
             </div>
-            <div v-if="proxyRegion === 'us-cloudflare'" class="control-item">
-              <label>Cloudflare Worker URL</label>
-              <input
-                v-model="cfWorkerUrl"
-                placeholder="https://ttft-proxy-us.xxx.workers.dev"
-                @change="saveCfWorkerUrl"
-              />
-              <small class="hint">部署后请填写 Worker URL</small>
-            </div>
             <div v-if="proxyRegion === 'us-vercel'" class="control-item">
-              <label>Vercel Edge Function URL</label>
+              <label>Vercel Function URL</label>
               <input
-                v-model="vercelProxyUrl"
-                placeholder="https://your-project.vercel.app/api/ttft-vercel-proxy"
-                @change="saveVercelUrl"
+                v-model="vercelFunctionUrl"
+                placeholder="https://your-app.vercel.app/api/ttft-vercel-proxy"
+                @change="saveVercelFunctionUrl"
               />
-              <small class="hint">部署到 Vercel 后请填写 API 路径</small>
+              <small class="hint">部署后请填写 Serverless Function URL</small>
             </div>
           </div>
           <div class="control-actions">
             <button class="btn btn-primary" :disabled="isRunning" @click="runBoth">同步测试</button>
             <button class="btn btn-secondary" :disabled="!isRunning" @click="stopAll">停止</button>
             <button class="btn btn-secondary" @click="resetAll">重置</button>
+            <button class="btn btn-secondary" :disabled="ipLoading" @click="fetchEgressIp">
+              {{ ipLoading ? '获取中...' : '显示本机出口 IP' }}
+            </button>
+          </div>
+          <div v-if="egressIp || ipError" class="ip-result">
+            <span class="ip-label">本机出口 IP</span>
+            <span v-if="egressIp" class="ip-value">{{ egressIp }}</span>
+            <span v-else class="ip-error">{{ ipError }}</span>
           </div>
         </div>
       </div>
@@ -131,49 +129,6 @@
               <pre>{{ lane.firstEventRaw || '暂无数据' }}</pre>
             </div>
 
-            <div v-if="(proxyRegion === 'us-cloudflare' || proxyRegion === 'us-vercel') && lane.regionInfo.workerRegion" class="region-info">
-              <div class="output-header">
-                <span>🌐 请求来源验证</span>
-                <span class="output-meta" :class="{ 'verified': lane.regionInfo.workerCountry === 'US' }">
-                  {{ lane.regionInfo.workerCountry === 'US' ? '✓ 已验证' : '验证中' }}
-                </span>
-              </div>
-              <div class="region-details">
-                <div class="region-item">
-                  <span class="label">代理类型：</span>
-                  <span class="value">{{ proxyRegion === 'us-vercel' ? 'Vercel Edge (强制)' : 'Cloudflare Worker' }}</span>
-                </div>
-                <div class="region-item">
-                  <span class="label">Worker区域：</span>
-                  <span class="value">{{ lane.regionInfo.workerRegion }}</span>
-                </div>
-                <div class="region-item">
-                  <span class="label">数据中心：</span>
-                  <span class="value">{{ lane.regionInfo.workerColo }}</span>
-                </div>
-                <div class="region-item">
-                  <span class="label">城市：</span>
-                  <span class="value">{{ lane.regionInfo.workerCity }}</span>
-                </div>
-                <div class="region-item">
-                  <span class="label">国家：</span>
-                  <span class="value">{{ lane.regionInfo.workerCountry }}</span>
-                </div>
-                <div class="region-item">
-                  <span class="label">请求ID：</span>
-                  <span class="value">{{ lane.regionInfo.requestId }}</span>
-                </div>
-                <div class="region-item">
-                  <span class="label">客户端IP：</span>
-                  <span class="value">{{ lane.regionInfo.clientIP }}</span>
-                </div>
-                <div class="region-item">
-                  <span class="label">时间戳：</span>
-                  <span class="value">{{ lane.regionInfo.timestamp }}</span>
-                </div>
-              </div>
-            </div>
-
             <div v-if="lane.error" class="lane-error">{{ lane.error }}</div>
           </div>
         </div>
@@ -184,7 +139,7 @@
 
 <script setup lang="ts">
 useHead({
-  title: 'Home',
+  title: 'TTFT Demo',
   meta: [
     { name: 'description', content: '双链路首 Token 时延对比演示页面' }
   ]
@@ -207,15 +162,6 @@ type LaneState = {
   firstTokenText: string
   firstEventRaw: string
   flash: boolean
-  regionInfo: {
-    workerRegion: string
-    workerCity: string
-    workerCountry: string
-    workerColo: string
-    requestId: string
-    clientIP: string
-    timestamp: string
-  }
 }
 
 const prompt = ref('请用一句话介绍首 token 时延的意义。')
@@ -235,16 +181,7 @@ const lanes = reactive<LaneState[]>([
     error: '',
     firstTokenText: '',
     firstEventRaw: '',
-    flash: false,
-    regionInfo: {
-      workerRegion: '',
-      workerCity: '',
-      workerCountry: '',
-      workerColo: '',
-      requestId: '',
-      clientIP: '',
-      timestamp: ''
-    }
+    flash: false
   },
   {
     id: 'b',
@@ -260,16 +197,7 @@ const lanes = reactive<LaneState[]>([
     error: '',
     firstTokenText: '',
     firstEventRaw: '',
-    flash: false,
-    regionInfo: {
-      workerRegion: '',
-      workerCity: '',
-      workerCountry: '',
-      workerColo: '',
-      requestId: '',
-      clientIP: '',
-      timestamp: ''
-    }
+    flash: false
   }
 ])
 
@@ -283,31 +211,47 @@ const $cloudbase = inject('cloudbase') as any
 // 代理区域选择
 const proxyRegion = ref('direct')
 
-// Cloudflare Worker URL（只在客户端访问 localStorage）
-const cfWorkerUrl = ref('')
+const egressIp = ref('')
+const ipLoading = ref(false)
+const ipError = ref('')
 
-// Vercel Edge Function URL（只在客户端访问 localStorage）
-const vercelProxyUrl = ref('')
+const vercelFunctionUrl = ref('')
 
 // 在客户端初始化
 onMounted(() => {
   if (import.meta.client) {
-    cfWorkerUrl.value = localStorage.getItem('cloudflare-worker-url') || 'https://ttft-proxy-us.huyue199312.workers.dev'
-    vercelProxyUrl.value = localStorage.getItem('vercel-proxy-url') || '/api/ttft-vercel-proxy'
+    vercelFunctionUrl.value = localStorage.getItem('vercel-function-url') || 'https://your-app.vercel.app/api/ttft-vercel-proxy'
     // 确保代理区域选择器在客户端初始化
     proxyRegion.value = 'direct'
   }
 })
 
-const saveCfWorkerUrl = () => {
+const saveVercelFunctionUrl = () => {
   if (import.meta.client) {
-    localStorage.setItem('cloudflare-worker-url', cfWorkerUrl.value)
+    localStorage.setItem('vercel-function-url', vercelFunctionUrl.value)
   }
 }
 
-const saveVercelUrl = () => {
-  if (import.meta.client) {
-    localStorage.setItem('vercel-proxy-url', vercelProxyUrl.value)
+const fetchEgressIp = async () => {
+  ipError.value = ''
+  ipLoading.value = true
+  try {
+    const response = await fetch('https://api64.ipify.org?format=json')
+    if (!response.ok) {
+      ipError.value = `请求失败 ${response.status}`
+      egressIp.value = ''
+      return
+    }
+    const data = await response.json()
+    egressIp.value = data?.ip || ''
+    if (!egressIp.value) {
+      ipError.value = '未获取到 IP'
+    }
+  } catch {
+    ipError.value = '获取失败'
+    egressIp.value = ''
+  } finally {
+    ipLoading.value = false
   }
 }
 
@@ -365,13 +309,6 @@ const runLane = async (lane: LaneState) => {
     return
   }
 
-  // 如果选择了代理方式，需要 API Key
-  if ((proxyRegion.value === 'shanghai' || proxyRegion.value === 'us-cloudflare' || proxyRegion.value === 'us-vercel') && !lane.apiKey) {
-    lane.error = '使用代理时必须填写 API Key'
-    lane.status = 'error'
-    return
-  }
-
   resetLane(lane)
   lane.status = 'running'
   const controller = new AbortController()
@@ -407,25 +344,9 @@ const runLane = async (lane: LaneState) => {
         }),
         signal: controller.signal
       })
-    } else if (proxyRegion.value === 'us-cloudflare') {
-      // 美国 Cloudflare Worker 代理
-      const workerUrl = cfWorkerUrl.value || 'https://ttft-proxy-us.your-subdomain.workers.dev'
-      response = await fetch(workerUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          endpoint: lane.endpoint,
-          apiKey: lane.apiKey,
-          payload
-        }),
-        signal: controller.signal
-      })
     } else if (proxyRegion.value === 'us-vercel') {
-      // 美国 Vercel Edge Function 代理（强制美国东部）
-      const vercelUrl = vercelProxyUrl.value || '/api/ttft-vercel-proxy'
-      response = await fetch(vercelUrl, {
+      const functionUrl = vercelFunctionUrl.value || 'https://your-app.vercel.app/api/ttft-vercel-proxy'
+      response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -455,29 +376,6 @@ const runLane = async (lane: LaneState) => {
       lane.status = 'error'
       lane.error = `请求失败 ${response.status}`
       return
-    }
-
-    // 收集区域信息用于验证
-    if (proxyRegion.value === 'us-cloudflare') {
-      lane.regionInfo = {
-        workerRegion: response.headers.get('X-Region') || '',
-        workerCity: response.headers.get('X-Cloudflare-City') || '',
-        workerCountry: response.headers.get('X-Cloudflare-Country') || '',
-        workerColo: response.headers.get('X-Cloudflare-Colo') || '',
-        requestId: response.headers.get('X-Request-ID') || '',
-        clientIP: response.headers.get('X-Client-IP') || '',
-        timestamp: response.headers.get('X-Timestamp') || ''
-      }
-    } else if (proxyRegion.value === 'us-vercel') {
-      lane.regionInfo = {
-        workerRegion: response.headers.get('X-Region') || '',
-        workerCity: response.headers.get('X-Vercel-Region') || '',
-        workerCountry: 'US',
-        workerColo: response.headers.get('X-Vercel-Region') || '',
-        requestId: response.headers.get('X-Request-ID') || '',
-        clientIP: response.headers.get('X-Client-IP') || '',
-        timestamp: response.headers.get('X-Timestamp') || ''
-      }
     }
 
     const reader = response.body.getReader()
@@ -592,6 +490,20 @@ const parseEvent = (data: string) => {
   gap: var(--spacing-lg);
 }
 
+.control-item label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+}
+
+.control-item textarea {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  font-size: 0.9rem;
+}
+
 .control-item input {
   width: 100%;
   border: 1px solid var(--color-border);
@@ -617,25 +529,33 @@ const parseEvent = (data: string) => {
   font-size: 0.8rem;
 }
 
-.control-item label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: var(--spacing-xs);
-}
-
-.control-item textarea {
-  width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-sm);
-  font-size: 0.9rem;
-}
-
 
 .control-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-md);
+}
+
+.ip-result {
+  margin-top: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 0.95rem;
+}
+
+.ip-label {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.ip-value {
+  font-family: 'Menlo', 'Monaco', 'Ubuntu Mono', monospace;
+  color: var(--color-text);
+}
+
+.ip-error {
+  color: #dc2626;
 }
 
 .compare-grid {
@@ -795,49 +715,6 @@ const parseEvent = (data: string) => {
 .lane-output.raw-preview {
   background: #111827;
   min-height: 120px;
-}
-
-.region-info {
-  border: 1px solid #22c55e;
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  background: rgba(34, 197, 94, 0.05);
-  min-height: 200px;
-}
-
-.region-info .output-header {
-  color: #22c55e;
-  font-weight: 600;
-}
-
-.output-meta.verified {
-  color: #22c55e;
-  font-weight: 600;
-}
-
-.region-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-sm);
-}
-
-.region-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.85rem;
-}
-
-.region-item .label {
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-.region-item .value {
-  color: var(--color-text);
-  font-family: 'Menlo', 'Monaco', 'Ubuntu Mono', monospace;
-  word-break: break-all;
 }
 
 .lane-error {
