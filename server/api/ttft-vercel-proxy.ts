@@ -18,7 +18,15 @@ export default defineEventHandler(async (event) => {
   if (method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method Not Allowed' }),
-      { status: 405, headers: { 'Content-Type': 'application/json' } }
+      {
+        status: 405,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      }
     )
   }
 
@@ -40,14 +48,30 @@ export default defineEventHandler(async (event) => {
   if (!endpoint) {
     return new Response(
       JSON.stringify({ error: 'Missing endpoint parameter' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
+      {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      }
     )
   }
 
   if (!apiKey) {
     return new Response(
       JSON.stringify({ error: 'Missing API Key. Please enter your API Key in form.' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
+      {
+        status: 401,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      }
     )
   }
 
@@ -103,6 +127,9 @@ export default defineEventHandler(async (event) => {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'X-Region': 'us-vercel-node',
         'X-Vercel-Region': vercelRegion,
         'X-Worker-City': regionInfo.city,
@@ -132,6 +159,9 @@ export default defineEventHandler(async (event) => {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'X-Region': 'us-vercel-node',
         'X-Vercel-Region': vercelRegion,
         'X-Worker-City': regionInfo.city,
@@ -155,6 +185,9 @@ export default defineEventHandler(async (event) => {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'X-Region': 'us-vercel-node',
         'X-Vercel-Region': vercelRegion,
         'X-Worker-City': regionInfo.city,
@@ -174,6 +207,9 @@ export default defineEventHandler(async (event) => {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'X-Region': 'us-vercel-node',
       'X-Vercel-Region': vercelRegion,
       'X-Worker-City': regionInfo.city,
