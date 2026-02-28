@@ -21,7 +21,7 @@
     </section>
 
     <!-- 控制区域 -->
-    <section class="control-section section">
+    <section class="control-section section compact">
       <div class="container">
         <div class="card control-card">
           <div class="control-row">
@@ -529,6 +529,14 @@ const parseEvent = (data: string) => {
   border-bottom: 1px solid rgba(0, 220, 130, 0.2);
   padding: var(--spacing-2xl) 0;
   text-align: center;
+}
+
+.section {
+  padding: var(--spacing-xl) 0;
+}
+
+.section.compact {
+  padding: var(--spacing-md) 0;
 }
 
 .header-content .badge {
