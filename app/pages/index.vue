@@ -418,6 +418,9 @@ const runLane = async (lane: LaneState) => {
     if (proxyRegion.value === 'us-vercel') {
       // 美国 Vercel Edge Function 代理（强制美国东部）
       const vercelUrl = vercelProxyUrl.value || '/api/ttft-vercel-proxy'
+      console.log(`[Lane ${lane.id}] 请求 Vercel 代理:`, vercelUrl)
+      console.log(`[Lane ${lane.id}] 请求体:`, { endpoint: lane.endpoint, hasApiKey: !!lane.apiKey, payload })
+      
       response = await fetch(vercelUrl, {
         method: 'POST',
         headers: {
@@ -432,6 +435,7 @@ const runLane = async (lane: LaneState) => {
       })
     } else {
       // 当前区域（直连）
+      console.log(`[Lane ${lane.id}] 直连请求:`, lane.endpoint)
       response = await fetch(lane.endpoint, {
         method: 'POST',
         headers: {
@@ -445,8 +449,16 @@ const runLane = async (lane: LaneState) => {
     }
 
     if (!response.ok || !response.body) {
+      let errorDetail = ''
+      try {
+        const errorText = await response.text()
+        console.error(`[Lane ${lane.id}] 请求失败:`, response.status, response.statusText, errorText)
+        errorDetail = errorText || response.statusText
+      } catch (e) {
+        errorDetail = response.statusText || 'Unknown error'
+      }
       lane.status = 'error'
-      lane.error = `请求失败 ${response.status}`
+      lane.error = `请求失败 ${response.status}: ${errorDetail}`
       return
     }
 
@@ -513,12 +525,13 @@ const runLane = async (lane: LaneState) => {
     lane.status = 'done'
   } catch (error) {
     if (controller.signal.aborted) {
+      console.log(`[Lane ${lane.id}] 请求已中止`)
       lane.status = 'idle'
       return
     }
     lane.status = 'error'
     const errorMsg = error instanceof Error ? error.message : String(error)
-    console.error('Lane error:', lane.id, error)
+    console.error(`[Lane ${lane.id}] 请求异常:`, error)
     lane.error = `请求异常: ${errorMsg}`
   } finally {
     controllers.delete(lane.id)
