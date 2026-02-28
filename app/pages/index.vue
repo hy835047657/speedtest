@@ -1,5 +1,6 @@
 <template>
   <div class="ttft-page">
+    <!-- 页面头部 -->
     <section class="page-header">
       <div class="container">
         <div class="header-content">
@@ -19,36 +20,42 @@
       </div>
     </section>
 
+    <!-- 控制区域 -->
     <section class="control-section section">
       <div class="container">
         <div class="card control-card">
-          <div class="control-grid">
-            <div class="control-item">
+          <div class="control-row">
+            <div class="control-item flex-1">
               <label>统一提示词</label>
               <textarea v-model="prompt" rows="3" placeholder="请输入测试提示词"></textarea>
             </div>
-            <div class="control-item">
-              <label>访问区域</label>
-              <div class="region-selector">
-                <select v-model="proxyRegion">
-                  <option value="direct">当前区域</option>
-                  <option value="us-vercel">美国</option>
-                </select>
-              </div>
-            </div>
-            <div v-if="proxyRegion === 'us-vercel'" class="control-item">
-              <label>Vercel Edge Function URL</label>
-              <input
-                v-model="vercelProxyUrl"
-                placeholder="https://your-project.vercel.app/api/ttft-vercel-proxy"
-                @change="saveVercelUrl"
-              />
-              <small class="hint">部署到 Vercel 后请填写 API 路径</small>
+            <div class="test-button-container">
+              <button class="btn btn-primary" :disabled="isRunning" @click="runBoth">同步测试</button>
+              <button class="btn btn-secondary" :disabled="!isRunning" @click="stopAll">停止</button>
             </div>
           </div>
+          <!-- 访问区域选择 - 注释掉，默认使用美国 -->
+          <!--
+          <div class="control-item">
+            <label>访问区域</label>
+            <div class="region-selector">
+              <select v-model="proxyRegion">
+                <option value="direct">当前区域</option>
+                <option value="us-vercel">美国</option>
+              </select>
+            </div>
+          </div>
+          <div v-if="proxyRegion === 'us-vercel'" class="control-item">
+            <label>Vercel Edge Function URL</label>
+            <input
+              v-model="vercelProxyUrl"
+              placeholder="https://your-project.vercel.app/api/ttft-vercel-proxy"
+              @change="saveVercelUrl"
+            />
+            <small class="hint">部署到 Vercel 后请填写 API 路径</small>
+          </div>
+          -->
           <div class="control-actions">
-            <button class="btn btn-primary" :disabled="isRunning" @click="runBoth">同步测试</button>
-            <button class="btn btn-secondary" :disabled="!isRunning" @click="stopAll">停止</button>
             <button class="btn btn-secondary" @click="resetAll">重置</button>
           </div>
         </div>
@@ -59,17 +66,16 @@
       <div class="container">
         <div class="compare-grid">
           <div v-for="lane in lanes" :key="lane.id" class="lane-card card">
+            <!-- 链路标题和状态 -->
             <div class="lane-header">
               <div class="lane-title">
                 <input v-model="lane.label" class="lane-label" />
                 <span class="status-badge" :class="lane.status">{{ statusText(lane.status) }}</span>
               </div>
-              <div class="lane-actions">
-                <button class="btn btn-primary" :disabled="isRunning" @click="runLane(lane)">单独测试</button>
-                <button class="btn btn-secondary" :disabled="lane.status !== 'running'" @click="stopLane(lane)">停止</button>
-              </div>
             </div>
 
+            <!-- 链路配置表单 - 注释掉 -->
+            <!--
             <div class="lane-form">
               <div class="field field-full">
                 <label>调用链路</label>
@@ -84,10 +90,12 @@
                 <input v-model="lane.model" placeholder="模型 ID 或名称" />
               </div>
             </div>
+            -->
 
+            <!-- 指标展示 -->
             <div class="lane-metrics">
               <div class="metric">
-                <span>TTFT</span>
+                <span>首Token耗时</span>
                 <strong>{{ formatMs(lane.ttftMs) }}</strong>
               </div>
               <div class="metric">
@@ -98,12 +106,9 @@
                 <span>Token 数</span>
                 <strong>{{ lane.tokenCount }}</strong>
               </div>
-              <div class="metric">
-                <span>首 Token</span>
-                <strong :class="{ flash: lane.flash }">{{ lane.firstTokenText || '--' }}</strong>
-              </div>
             </div>
 
+            <!-- 流式输出 -->
             <div class="lane-output" :class="{ active: lane.flash }">
               <div class="output-header">
                 <span>流式输出</span>
@@ -112,6 +117,8 @@
               <pre>{{ lane.output || '暂无输出' }}</pre>
             </div>
 
+            <!-- 首段原始数据 - 注释掉 -->
+            <!--
             <div class="lane-output raw-preview">
               <div class="output-header">
                 <span>首段原始数据</span>
@@ -119,7 +126,10 @@
               </div>
               <pre>{{ lane.firstEventRaw || '暂无数据' }}</pre>
             </div>
+            -->
 
+            <!-- 区域信息验证 - 注释掉 -->
+            <!--
             <div v-if="proxyRegion === 'us-vercel' && lane.regionInfo.workerRegion" class="region-info">
               <div class="output-header">
                 <span>🌐 请求来源验证</span>
@@ -162,6 +172,7 @@
                 </div>
               </div>
             </div>
+            -->
 
             <div v-if="lane.error" class="lane-error">{{ lane.error }}</div>
           </div>
@@ -214,7 +225,7 @@ const lanes = reactive<LaneState[]>([
     id: 'a',
     label: '链路1-IGA加速链路',
     endpoint: 'https://mot-gb-aira2ysg103869vl.speedifyvolcai.com/api/v3/chat/completions',
-    apiKey: '',
+    apiKey: '1a4ce36d-af43-4640-a991-887282617206',
     model: 'doubao-seed-1-6-lite-251015',
     status: 'idle',
     ttftMs: null,
@@ -239,7 +250,7 @@ const lanes = reactive<LaneState[]>([
     id: 'b',
     label: '链路2-原始链路',
     endpoint: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
-    apiKey: '',
+    apiKey: '1a4ce36d-af43-4640-a991-887282617206',
     model: 'doubao-seed-1-6-lite-251015',
     status: 'idle',
     ttftMs: null,
@@ -269,22 +280,22 @@ const isRunning = computed(() => lanes.some(lane => lane.status === 'running'))
 // 获取 CloudBase 实例
 const $cloudbase = inject('cloudbase') as any
 
-// 代理区域选择
+// 代理区域选择 - 默认使用美国
 const proxyRegion = ref('us-vercel')
 
 // Cloudflare Worker URL（只在客户端访问 localStorage）
 const cfWorkerUrl = ref('')
 
 // Vercel Edge Function URL（只在客户端访问 localStorage）
-const vercelProxyUrl = ref('')
+const vercelProxyUrl = ref('https://nuxt-ttft-demo-v2.vercel.app/api/ttft-vercel-proxy')
 
 // 在客户端初始化
 onMounted(() => {
   if (import.meta.client) {
     cfWorkerUrl.value = localStorage.getItem('cloudflare-worker-url') || 'https://ttft-proxy-us.huyue199312.workers.dev'
-    vercelProxyUrl.value = localStorage.getItem('vercel-proxy-url') || '/api/ttft-vercel-proxy'
+    vercelProxyUrl.value = localStorage.getItem('vercel-proxy-url') || 'https://nuxt-ttft-demo-v2.vercel.app/api/ttft-vercel-proxy'
     // 确保代理区域选择器在客户端初始化
-    proxyRegion.value = 'direct'
+    proxyRegion.value = 'us-vercel'
   }
 })
 
@@ -533,6 +544,26 @@ const parseEvent = (data: string) => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+}
+
+.control-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.flex-1 {
+  flex: 1;
+  min-width: 300px;
+}
+
+.test-button-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  min-width: 100px;
+  margin-top: var(--spacing-lg);
 }
 
 .control-grid {
@@ -807,6 +838,19 @@ const parseEvent = (data: string) => {
   .lane-actions {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .control-row {
+    flex-direction: column;
+  }
+
+  .test-button-container {
+    width: 100%;
+    margin-top: var(--spacing-sm);
+  }
+
+  .test-button-container button {
+    width: 100%;
   }
 }
 </style>
