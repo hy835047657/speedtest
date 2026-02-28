@@ -109,6 +109,16 @@
                 <span>Token 数</span>
                 <strong>{{ lane.tokenCount }}</strong>
               </div>
+              <!-- 耗时优化指标 - 仅在链路1显示 -->
+              <div v-if="lane.id === 'a'" class="metric optimization-metric">
+                <span>耗时优化</span>
+                <strong :class="{ positive: improvement > 0, negative: improvement < 0 }">
+                  {{ improvement !== null ? `${Math.round(improvement)}%` : '--' }}
+                  <svg v-if="improvement !== null" class="rocket-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13.13 22.19L11.5 18.36C13.07 17.78 14.54 17 15.9 16.09L13.13 22.19ZM5.64 12.5L8.35 6.73L6.24 10.82C5.9 11.5 5.68 12.2 5.64 12.5ZM18.13 11.5L15.23 7.65C14.87 7.21 14.45 6.82 13.97 6.5L17.5 2L15.09 7.34C16.25 8.41 17.23 9.83 17.85 11.5H18.13ZM12 17.5C12 17.5 12 17.5 12 17.5C12 17.5 12 17.5 12 17.5C12 17.5 12 17.5 12 17.5C12 17.5 12 17.5 12 17.5C12 17.5 12 17.5 12 17.5C12 17.5 12 17.5 12 17.5ZM10.5 11.5C10.5 11.5 10.5 11.5 10.5 11.5C10.5 11.5 10.5 11.5 10.5 11.5C10.5 11.5 10.5 11.5 10.5 11.5ZM14.5 11.5H12C11.45 11.5 11 11.95 11 12.5V15.5C11 16.05 11.45 16.5 12 16.5H13.5C14.05 16.5 14.5 16.05 14.5 15.5V11.5ZM12.5 4.5C12.5 4.5 12.5 4.5 12.5 4.5C12.5 4.5 12.5 4.5 12.5 4.5C12.5 4.5 12.5 4.5 12.5 4.5C12.5 4.5 12.5 4.5 12.5 4.5ZM12.5 4.5L10.5 11.5H14.5L12.5 4.5Z"/>
+                  </svg>
+                </strong>
+              </div>
             </div>
 
             <!-- 流式输出 -->
@@ -279,6 +289,18 @@ const lanes = reactive<LaneState[]>([
 const controllers = new Map<string, AbortController>()
 
 const isRunning = computed(() => lanes.some(lane => lane.status === 'running'))
+
+// 计算耗时优化百分比：(链路2首Token耗时 - 链路1首Token耗时) / 链路2首Token耗时
+const improvement = computed(() => {
+  const lane1 = lanes.find(l => l.id === 'a')
+  const lane2 = lanes.find(l => l.id === 'b')
+  
+  if (lane1 && lane2 && lane1.ttftMs !== null && lane2.ttftMs !== null && lane2.ttftMs > 0) {
+    const value = ((lane2.ttftMs - lane1.ttftMs) / lane2.ttftMs) * 100
+    return value
+  }
+  return null
+})
 
 // 获取 CloudBase 实例
 const $cloudbase = inject('cloudbase') as any
@@ -753,6 +775,39 @@ const parseEvent = (data: string) => {
 .metric strong.flash {
   color: var(--nuxt-green-dark);
   animation: flash 0.5s ease;
+}
+
+.metric.optimization-metric {
+  background: linear-gradient(135deg, rgba(0, 220, 130, 0.08), rgba(52, 232, 158, 0.05));
+  border: 1px solid rgba(0, 220, 130, 0.2);
+}
+
+.metric.optimization-metric strong {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.metric.optimization-metric strong.positive {
+  color: var(--nuxt-green-dark);
+}
+
+.metric.optimization-metric strong.negative {
+  color: #dc2626;
+}
+
+.rocket-icon {
+  animation: rocket-float 2s ease-in-out infinite;
+}
+
+@keyframes rocket-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
 }
 
 .lane-output {
