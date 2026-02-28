@@ -28,24 +28,13 @@
               <textarea v-model="prompt" rows="3" placeholder="请输入测试提示词"></textarea>
             </div>
             <div class="control-item">
-              <label>代理区域</label>
+              <label>访问区域</label>
               <div class="region-selector">
                 <select v-model="proxyRegion">
-                  <option value="direct">直连（浏览器）</option>
-                  <option value="shanghai">上海（CloudBase）</option>
-                  <option value="us-cloudflare">美国（Cloudflare）</option>
-                  <option value="us-vercel">美国（Vercel Edge - 强制）⭐</option>
+                  <option value="direct">当前区域</option>
+                  <option value="us-vercel">美国</option>
                 </select>
               </div>
-            </div>
-            <div v-if="proxyRegion === 'us-cloudflare'" class="control-item">
-              <label>Cloudflare Worker URL</label>
-              <input
-                v-model="cfWorkerUrl"
-                placeholder="https://ttft-proxy-us.xxx.workers.dev"
-                @change="saveCfWorkerUrl"
-              />
-              <small class="hint">部署后请填写 Worker URL</small>
             </div>
             <div v-if="proxyRegion === 'us-vercel'" class="control-item">
               <label>Vercel Edge Function URL</label>
@@ -131,7 +120,7 @@
               <pre>{{ lane.firstEventRaw || '暂无数据' }}</pre>
             </div>
 
-            <div v-if="(proxyRegion === 'us-cloudflare' || proxyRegion === 'us-vercel') && lane.regionInfo.workerRegion" class="region-info">
+            <div v-if="proxyRegion === 'us-vercel' && lane.regionInfo.workerRegion" class="region-info">
               <div class="output-header">
                 <span>🌐 请求来源验证</span>
                 <span class="output-meta" :class="{ 'verified': lane.regionInfo.workerCountry === 'US' }">
@@ -141,7 +130,7 @@
               <div class="region-details">
                 <div class="region-item">
                   <span class="label">代理类型：</span>
-                  <span class="value">{{ proxyRegion === 'us-vercel' ? 'Vercel Edge (强制)' : 'Cloudflare Worker' }}</span>
+                  <span class="value">Vercel</span>
                 </div>
                 <div class="region-item">
                   <span class="label">Worker区域：</span>
@@ -281,7 +270,7 @@ const isRunning = computed(() => lanes.some(lane => lane.status === 'running'))
 const $cloudbase = inject('cloudbase') as any
 
 // 代理区域选择
-const proxyRegion = ref('direct')
+const proxyRegion = ref('us-vercel')
 
 // Cloudflare Worker URL（只在客户端访问 localStorage）
 const cfWorkerUrl = ref('')
@@ -366,7 +355,7 @@ const runLane = async (lane: LaneState) => {
   }
 
   // 如果选择了代理方式，需要 API Key
-  if ((proxyRegion.value === 'shanghai' || proxyRegion.value === 'us-cloudflare' || proxyRegion.value === 'us-vercel') && !lane.apiKey) {
+  if (proxyRegion.value === 'us-vercel' && !lane.apiKey) {
     lane.error = '使用代理时必须填写 API Key'
     lane.status = 'error'
     return
@@ -390,39 +379,7 @@ const runLane = async (lane: LaneState) => {
     let response: Response
 
     // 根据选择的代理区域发起请求
-    if (proxyRegion.value === 'shanghai' && $cloudbase) {
-      // 上海 CloudBase 云函数代理
-      response = await fetch('https://tcb-api.tencentcloudapi.com/web', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CloudBase-Env': 'ai-native-4g9hewa34cdcb7c1',
-          'X-CloudBase-Function-Name': 'ttft-proxy',
-          'X-CloudBase-Region': 'ap-shanghai'
-        },
-        body: JSON.stringify({
-          endpoint: lane.endpoint,
-          apiKey: lane.apiKey,
-          payload
-        }),
-        signal: controller.signal
-      })
-    } else if (proxyRegion.value === 'us-cloudflare') {
-      // 美国 Cloudflare Worker 代理
-      const workerUrl = cfWorkerUrl.value || 'https://ttft-proxy-us.your-subdomain.workers.dev'
-      response = await fetch(workerUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          endpoint: lane.endpoint,
-          apiKey: lane.apiKey,
-          payload
-        }),
-        signal: controller.signal
-      })
-    } else if (proxyRegion.value === 'us-vercel') {
+    if (proxyRegion.value === 'us-vercel') {
       // 美国 Vercel Edge Function 代理（强制美国东部）
       const vercelUrl = vercelProxyUrl.value || '/api/ttft-vercel-proxy'
       response = await fetch(vercelUrl, {
@@ -438,7 +395,7 @@ const runLane = async (lane: LaneState) => {
         signal: controller.signal
       })
     } else {
-      // 直连（浏览器）
+      // 当前区域（直连）
       response = await fetch(lane.endpoint, {
         method: 'POST',
         headers: {
@@ -458,22 +415,12 @@ const runLane = async (lane: LaneState) => {
     }
 
     // 收集区域信息用于验证
-    if (proxyRegion.value === 'us-cloudflare') {
+    if (proxyRegion.value === 'us-vercel') {
       lane.regionInfo = {
-        workerRegion: response.headers.get('X-Region') || '',
-        workerCity: response.headers.get('X-Cloudflare-City') || '',
-        workerCountry: response.headers.get('X-Cloudflare-Country') || '',
-        workerColo: response.headers.get('X-Cloudflare-Colo') || '',
-        requestId: response.headers.get('X-Request-ID') || '',
-        clientIP: response.headers.get('X-Client-IP') || '',
-        timestamp: response.headers.get('X-Timestamp') || ''
-      }
-    } else if (proxyRegion.value === 'us-vercel') {
-      lane.regionInfo = {
-        workerRegion: response.headers.get('X-Region') || '',
-        workerCity: response.headers.get('X-Vercel-Region') || '',
-        workerCountry: 'US',
-        workerColo: response.headers.get('X-Vercel-Region') || '',
+        workerRegion: response.headers.get('X-Vercel-Region') || '',
+        workerCity: response.headers.get('X-Worker-City') || '',
+        workerCountry: response.headers.get('X-Worker-Country') || '',
+        workerColo: response.headers.get('X-Worker-Colo') || '',
         requestId: response.headers.get('X-Request-ID') || '',
         clientIP: response.headers.get('X-Client-IP') || '',
         timestamp: response.headers.get('X-Timestamp') || ''
@@ -534,7 +481,9 @@ const runLane = async (lane: LaneState) => {
       return
     }
     lane.status = 'error'
-    lane.error = '请求中断或解析异常'
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('Lane error:', lane.id, error)
+    lane.error = `请求异常: ${errorMsg}`
   } finally {
     controllers.delete(lane.id)
   }
@@ -589,7 +538,7 @@ const parseEvent = (data: string) => {
 .control-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--spacing-lg);
+  gap: var(--spacing-sm);
 }
 
 .control-item input {

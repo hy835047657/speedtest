@@ -3,10 +3,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nuxtjs",
-  "regions": ["iad1"],
-  "functions": {
-    "api/ttft-vercel-proxy.ts": {
-      "runtime": "edge"
-    }
-  }
+  "outputDirectory": ".output/public",
+  "regions": ["iad1"]
 }

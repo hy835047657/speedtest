@@ -32,13 +32,11 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    preset: "cloudflare_module",
-
-    cloudflare: {
-      deployConfig: true,
-      nodeCompat: true
+    preset: "vercel",
+    vercel: {
+      config: {}
     }
   },
 
-  modules: ["nitro-cloudflare-dev"]
+  modules: []
 })

@@ -168,7 +168,35 @@ Vercel 支持的区域代码：
 
 **解决**：Vercel Edge Function 已配置 CORS 头，无需额外处理
 
-### 问题 4：区域不是 US
+### 问题 4：401 Authentication Required
+
+**原因**：Vercel 部署保护（Deployment Protection）启用了 SSO 认证
+
+**解决**：需要关闭部署保护
+
+**详细步骤**：
+1. 访问 https://vercel.com/dashboard
+2. 选择你的项目：`ttft-demo-new`
+3. 进入项目设置：
+   - 点击项目名称进入项目详情页
+   - 在顶部导航栏点击 **Settings** 标签
+4. 找到 **Protection** 选项（通常在左侧菜单中）
+5. 在 **Deployment Protection** 部分：
+   - 将 **Vercel Authentication** 从 **Preview & Production** 或 **Preview** 改为 **Off**
+   - 如果有 **Basic Authentication** 也建议关闭
+6. 点击 **Save** 按钮保存设置
+7. 重新部署：`vercel --prod`
+
+**验证方法**：
+```bash
+curl -X POST https://your-project.vercel.app/api/ttft-vercel-proxy \
+  -H "Content-Type: application/json" \
+  -d '{"endpoint":"https://httpbin.org/ip","apiKey":"test","payload":{}}'
+```
+
+如果返回的不是 HTML 认证页面，而是 JSON 响应，说明部署保护已成功关闭。
+
+### 问题 5：区域不是 US
 
 **原因**：`vercel.json` 配置未生效
 
