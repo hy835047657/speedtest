@@ -312,13 +312,15 @@ const proxyRegion = ref('us-vercel')
 const cfWorkerUrl = ref('')
 
 // Vercel Edge Function URL（只在客户端访问 localStorage）
-const vercelProxyUrl = ref('https://nuxt-ttft-demo-v2.vercel.app/api/ttft-vercel-proxy')
+const vercelProxyUrl = ref('')
 
 // 在客户端初始化
 onMounted(() => {
   if (import.meta.client) {
     cfWorkerUrl.value = localStorage.getItem('cloudflare-worker-url') || 'https://ttft-proxy-us.huyue199312.workers.dev'
-    vercelProxyUrl.value = localStorage.getItem('vercel-proxy-url') || 'https://nuxt-ttft-demo-v2.vercel.app/api/ttft-vercel-proxy'
+    // 自动检测当前域名并设置Vercel代理URL
+    const currentOrigin = window.location.origin
+    vercelProxyUrl.value = localStorage.getItem('vercel-proxy-url') || `${currentOrigin}/api/ttft-vercel-proxy`
     // 确保代理区域选择器在客户端初始化
     proxyRegion.value = 'us-vercel'
   }
@@ -396,6 +398,10 @@ const runLane = async (lane: LaneState) => {
     lane.status = 'error'
     return
   }
+
+  console.log(`[调试] proxyRegion.value:`, proxyRegion.value)
+  console.log(`[调试] vercelProxyUrl.value:`, vercelProxyUrl.value)
+  console.log(`[调试] 当前域名:`, window.location.origin)
 
   resetLane(lane)
   lane.status = 'running'
