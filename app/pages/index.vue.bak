@@ -126,6 +126,16 @@
                 <span>Token 数</span>
                 <strong>{{ lane.tokenCount }}</strong>
               </div>
+              <!-- 耗时优化指标 - 仅在链路1显示 -->
+              <div v-if="lane.id === 'a'" class="metric optimization-metric">
+                <span>耗时优化</span>
+                <strong :class="{ positive: improvement > 0, negative: improvement < 0 }">
+                  {{ improvement !== null ? `${Math.round(improvement)}%` : '--' }}
+                  <svg v-if="improvement !== null" class="rocket-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13.13 22.19L11.5 18.36C13.07 17.78 14.54 17 15.9 16.09L13.13 22.19ZM5.64 12.5L8.35 6.73L6.24 10.82C5.9 11.5 5.68 12.2 5.64 12.5ZM18.13 11.5L15.23 7.65C14.87 7.21 14.45 6.82 13.97 6.5L17.5 2L15.09 7.34C16.25 8.41 17.23 9.83 17.85 11.5H18.13ZM12 17.5C12 17.5 12 17.5 12 17.5C12 17.5 12 17.5 12 17.5C12 17.5 12 17.5 12 17.5C12 17.5 12 17.5 12 17.5C12 17.5 12 17.5 12 17.5C12 17.5 12 17.5 12 17.5ZM10.5 11.5C10.5 11.5 10.5 11.5 10.5 11.5C10.5 11.5 10.5 11.5 10.5 11.5C10.5 11.5 10.5 11.5 10.5 11.5ZM14.5 11.5H12C11.45 11.5 11 11.95 11 12.5V15.5C11 16.05 11.45 16.5 12 16.5H13.5C14.05 16.5 14.5 16.05 14.5 15.5V11.5ZM12.5 4.5C12.5 4.5 12.5 4.5 12.5 4.5C12.5 4.5 12.5 4.5 12.5 4.5C12.5 4.5 12.5 4.5 12.5 4.5C12.5 4.5 12.5 4.5 12.5 4.5ZM12.5 4.5L10.5 11.5H14.5L12.5 4.5Z"/>
+                  </svg>
+                </strong>
+              </div>
             </div>
 
             <!-- 流式输出 -->
@@ -918,56 +928,6 @@ const parseEvent = (data: string) => {
   background: rgba(239, 68, 68, 0.1);
   padding: var(--spacing-sm);
   border-radius: var(--radius-md);
-}
-
-/* 优化指标区域样式 */
-.optimization-section {
-  padding: var(--spacing-md) 0;
-}
-
-.optimization-card {
-  background: linear-gradient(135deg, rgba(0, 220, 130, 0.08), rgba(52, 232, 158, 0.05));
-  border: 1px solid rgba(0, 220, 130, 0.2);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-lg);
-}
-
-.optimization-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-md);
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.optimization-label {
-  color: var(--color-text-secondary);
-  font-size: 1.1rem;
-  font-weight: 500;
-}
-
-.optimization-value {
-  font-size: 2rem;
-  font-weight: 700;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.optimization-value.positive {
-  color: var(--nuxt-green-dark);
-  background: rgba(0, 220, 130, 0.1);
-}
-
-.optimization-value.negative {
-  color: #dc2626;
-  background: rgba(239, 68, 68, 0.1);
-}
-
-.rocket-icon-large {
-  animation: rocket-float 2s ease-in-out infinite;
-  color: var(--nuxt-green-dark);
 }
 
 @keyframes flash {
