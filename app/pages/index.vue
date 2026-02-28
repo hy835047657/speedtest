@@ -31,7 +31,7 @@
             </div>
             <div class="test-button-container">
               <button class="btn btn-primary" :disabled="isRunning" @click="runBoth">同步测试</button>
-              <button class="btn btn-secondary" :disabled="!isRunning" @click="stopAll">停止</button>
+              <!-- <button class="btn btn-secondary" :disabled="!isRunning" @click="stopAll">停止</button> -->
             </div>
           </div>
           <!-- 访问区域选择 - 注释掉，默认使用美国 -->
@@ -55,9 +55,12 @@
             <small class="hint">部署到 Vercel 后请填写 API 路径</small>
           </div>
           -->
+          <!-- 注释掉重置按钮 -->
+          <!--
           <div class="control-actions">
             <button class="btn btn-secondary" @click="resetAll">重置</button>
           </div>
+          -->
         </div>
       </div>
     </section>
