@@ -538,7 +538,7 @@ const parseEvent = (data: string) => {
 .control-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
 }
 
 .control-item input {
